@@ -4,10 +4,57 @@ import plotly.express as px
 from tqdm import tqdm
 from datetime import datetime
 
+excluded_messages = {
+    "ET DNS Standard query response, Name Error",
+    "ET SCAN Malformed Packet SYN RST",
+    "GPL ICMP_INFO Echo Reply",
+    "SURICATA Applayer Detect protocol only one direction",
+    "SURICATA Applayer Mismatch protocol both directions",
+    "SURICATA Applayer Wrong direction first Data",
+    "SURICATA HTTP unable to match response to request",
+    "SURICATA IPv4 invalid checksum",
+    "SURICATA IPv4 padding required",
+    "SURICATA IPv4 padding required",
+    "SURICATA SMTP data command rejected",
+    "SURICATA SMTP invalid pipelined sequence",
+    "SURICATA SMTP invalid reply",
+    "SURICATA SMTP Mime encoded line len exceeded",
+    "SURICATA STREAM 3way handshake excessive different SYN/ACKs",
+    "SURICATA STREAM 3way handshake SYNACK with wrong ack",
+    "SURICATA STREAM 3way handshake wrong seq wrong ack",
+    "SURICATA STREAM bad window update",
+    "SURICATA STREAM CLOSEWAIT FIN out of window",
+    "SURICATA STREAM ESTABLISHED invalid ack",
+    "SURICATA STREAM ESTABLISHED packet out of window",
+    "SURICATA STREAM ESTABLISHED SYNACK resend with different seq",
+    "SURICATA STREAM ESTABLISHED SYN resend",
+    "SURICATA STREAM excessive retransmissions",
+    "SURICATA STREAM FIN1 FIN with wrong seq",
+    "SURICATA STREAM FIN1 invalid ack",
+    "SURICATA STREAM FIN invalid ack",
+    "SURICATA STREAM FIN out of window",
+    "SURICATA STREAM FIN recv but no session",
+    "SURICATA STREAM Packet with broken ack",
+    "SURICATA STREAM Packet with invalid ack",
+    "SURICATA STREAM Packet with invalid timestamp",
+    "SURICATA STREAM reassembly sequence GAP -- missing packet(s)",
+    "SURICATA STREAM RST recv but no session",
+    "SURICATA STREAM SHUTDOWN RST invalid ack",
+    "SURICATA STREAM SYN resend",
+    "SURICATA STREAM TIMEWAIT invalid ack",
+    "SURICATA TCPv4 invalid checksum",
+    "SURICATA TLS invalid certificate",
+    "SURICATA TLS invalid handshake message",
+    "SURICATA TLS invalid record/traffic",
+    "SURICATA TLS invalid record type",
+    "SURICATA zero length padN option"
+}
+
 def read_events(file_path):
     try:
         with open(file_path) as f:
             events = [json.loads(line) for line in f]
+            events.sort(key=lambda e: e['timestamp'])
         return events
     except Exception as e:
         print(f"[!] Error reading events: {e}")
@@ -23,47 +70,7 @@ def create_bar_chart(data_frame):
     )
     return fig
 
-def create_html_report(fig, events, top_src_ips):
-    excluded_messages = {
-        "ET SCAN Malformed Packet SYN RST",
-        "SURICATA Applayer Detect protocol only one direction",
-        "SURICATA Applayer Mismatch protocol both directions",
-        "SURICATA Applayer Wrong direction first Data",
-        "SURICATA HTTP unable to match response to request",
-        "SURICATA IPv4 invalid checksum",
-        "SURICATA SMTP data command rejected",
-        "SURICATA SMTP invalid pipelined sequence",
-        "SURICATA SMTP invalid reply",
-        "SURICATA SMTP Mime encoded line len exceeded",
-        "SURICATA STREAM 3way handshake excessive different SYN/ACKs",
-        "SURICATA STREAM 3way handshake SYNACK with wrong ack",
-        "SURICATA STREAM 3way handshake wrong seq wrong ack",
-        "SURICATA STREAM bad window update",
-        "SURICATA STREAM CLOSEWAIT FIN out of window",
-        "SURICATA STREAM ESTABLISHED invalid ack",
-        "SURICATA STREAM ESTABLISHED packet out of window",
-        "SURICATA STREAM ESTABLISHED SYNACK resend with different seq",
-        "SURICATA STREAM ESTABLISHED SYN resend",
-        "SURICATA STREAM excessive retransmissions",
-        "SURICATA STREAM FIN1 FIN with wrong seq",
-        "SURICATA STREAM FIN1 invalid ack",
-        "SURICATA STREAM FIN invalid ack",
-        "SURICATA STREAM FIN out of window",
-        "SURICATA STREAM FIN recv but no session",
-        "SURICATA STREAM Packet with broken ack",
-        "SURICATA STREAM Packet with invalid ack",
-        "SURICATA STREAM Packet with invalid timestamp",
-        "SURICATA STREAM reassembly sequence GAP -- missing packet(s)",
-        "SURICATA STREAM RST recv but no session",
-        "SURICATA STREAM SHUTDOWN RST invalid ack",
-        "SURICATA STREAM SYN resend",
-        "SURICATA STREAM TIMEWAIT invalid ack",
-        "SURICATA TCPv4 invalid checksum",
-        "SURICATA TLS invalid certificate",
-        "SURICATA TLS invalid handshake message",
-        "SURICATA TLS invalid record/traffic",
-        "SURICATA TLS invalid record type"
-    }
+def create_html_report(fig, events, top_src_ips, unique_ip_alerts):
 
     table_rows = ''.join(
         f"<tr><td>{datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z').strftime('%Y-%m-%d')}</td>"
@@ -71,7 +78,7 @@ def create_html_report(fig, events, top_src_ips):
         f"<td>{e.get('src_ip', 'N/A')}</td>"
         f"<td>{e.get('dest_ip', 'N/A')}</td>"
         f"<td>{e['alert']['signature']}</td></tr>"
-        for e in tqdm(events, desc="[*] Generating report")  # Add progress bar using tqdm
+        for e in tqdm(events, desc="[*] Generating report")
         if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'] not in excluded_messages
     )
 
@@ -80,7 +87,13 @@ def create_html_report(fig, events, top_src_ips):
         f"<tr><td>{index}</td><td>{ip}</td><td>{count}</td></tr>"
         for index, (ip, count) in enumerate(top_src_ips.items(), start=1)
     )
-
+    # Generate unique IP per Alert Message table rows
+    unique_ip_alerts_table_rows = ''.join(
+        f"<tr><td>{index}</td><td>{alert_msg}</td><td>{', '.join(ips)}</td><td>{len(ips)}</td></tr>"
+        for index, (alert_msg, ips) in enumerate(unique_ip_alerts, start=1)
+        if alert_msg not in excluded_messages
+    )
+    
     report = f'''
     <html>
     <head>
@@ -124,6 +137,22 @@ def create_html_report(fig, events, top_src_ips):
             </table>
         </div>
         <div>
+            <h2>Unique IPs per Alert Message</h2>
+            <table class="auto-fit">
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Alert Message</th>
+                        <th>IP Addresses</th>
+                        <th>IP Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {unique_ip_alerts_table_rows}
+                </tbody>
+            </table>
+        </div>
+        <div>
             <h2>Events</h2>
             <table>
                 <thead>
@@ -162,8 +191,12 @@ def main():
     df = pd.json_normalize(events)
     top_src_ips = df['src_ip'].value_counts().head(10)
     fig = create_bar_chart(df)
-    
-    report = create_html_report(fig, events, top_src_ips)
+
+    # Group by alert message and aggregate unique IP addresses
+    unique_ip_alerts = df[df['alert.signature'].notnull()].groupby('alert.signature').agg({'src_ip': pd.Series.unique}).reset_index()
+    unique_ip_alerts = [(alert_msg, ips) for alert_msg, ips in unique_ip_alerts.values if alert_msg not in excluded_messages]
+
+    report = create_html_report(fig, events, top_src_ips, unique_ip_alerts)
     write_report_to_file(report, 'report.html')
     print("[+] Report generated successfully.")
 
