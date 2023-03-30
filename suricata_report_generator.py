@@ -1,7 +1,8 @@
 import json
 import pandas as pd
 import plotly.express as px
-from tqdm import tqdm  # import the tqdm library
+from tqdm import tqdm
+from datetime import datetime
 
 def read_events(file_path):
     try:
@@ -63,13 +64,17 @@ def create_html_report(fig, events):
         "SURICATA TLS invalid record/traffic",
         "SURICATA TLS invalid record type"
     }
-    
+
     table_rows = ''.join(
-        f"<tr><td>{e['timestamp']}</td><td>{e.get('src_ip', 'N/A')}</td><td>{e.get('dest_ip', 'N/A')}</td><td>{e['alert']['signature']}</td></tr>"
+        f"<tr><td>{datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z').strftime('%Y-%m-%d')}</td>"
+        f"<td>{datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z').strftime('%H:%M:%S')}</td>"
+        f"<td>{e.get('src_ip', 'N/A')}</td>"
+        f"<td>{e.get('dest_ip', 'N/A')}</td>"
+        f"<td>{e['alert']['signature']}</td></tr>"
         for e in tqdm(events, desc="[*] Generating report")  # Add progress bar using tqdm
         if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'] not in excluded_messages
     )
-    
+
     report = f'''
     <html>
     <head>
@@ -99,7 +104,8 @@ def create_html_report(fig, events):
             <table>
                 <thead>
                     <tr>
-                        <th>Timestamp</th>
+                        <th>Date</th>
+                        <th>Time</th>
                         <th>Source IP</th>
                         <th>Destination IP</th>
                         <th>Alert Message</th>
@@ -113,7 +119,7 @@ def create_html_report(fig, events):
     </body>
     </html>
     '''
-    
+
     return report
 
 def write_report_to_file(report, file_path):
