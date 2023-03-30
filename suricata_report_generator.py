@@ -24,6 +24,7 @@ def create_bar_chart(data_frame):
 
 def create_html_report(fig, events):
     excluded_messages = {
+        "ET SCAN Malformed Packet SYN RST",
         "SURICATA Applayer Detect protocol only one direction",
         "SURICATA Applayer Mismatch protocol both directions",
         "SURICATA Applayer Wrong direction first Data",
@@ -31,7 +32,10 @@ def create_html_report(fig, events):
         "SURICATA IPv4 invalid checksum",
         "SURICATA SMTP data command rejected",
         "SURICATA SMTP invalid pipelined sequence",
+        "SURICATA SMTP invalid reply",
         "SURICATA SMTP Mime encoded line len exceeded",
+        "SURICATA STREAM 3way handshake excessive different SYN/ACKs",
+        "SURICATA STREAM 3way handshake SYNACK with wrong ack",
         "SURICATA STREAM 3way handshake wrong seq wrong ack",
         "SURICATA STREAM bad window update",
         "SURICATA STREAM CLOSEWAIT FIN out of window",
