@@ -23,7 +23,7 @@ def create_bar_chart(data_frame):
     )
     return fig
 
-def create_html_report(fig, events):
+def create_html_report(fig, events, top_src_ips):
     excluded_messages = {
         "ET SCAN Malformed Packet SYN RST",
         "SURICATA Applayer Detect protocol only one direction",
@@ -75,6 +75,12 @@ def create_html_report(fig, events):
         if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'] not in excluded_messages
     )
 
+    # Generate top 10 IPs table rows
+    top_ips_table_rows = ''.join(
+        f"<tr><td>{index}</td><td>{ip}</td><td>{count}</td></tr>"
+        for index, (ip, count) in enumerate(top_src_ips.items(), start=1)
+    )
+
     report = f'''
     <html>
     <head>
@@ -92,12 +98,30 @@ def create_html_report(fig, events):
             th {{
                 background-color: #f2f2f2;
             }}
+            .auto-fit {{
+                width: auto;
+            }}
         </style>
     </head>
     <body>
         <h1>Suricata Report</h1>
         <div>
             {fig.to_html(include_plotlyjs='cdn', full_html=False)}
+        </div>
+        <div>
+            <h2>Top 10 Source IPs</h2>
+            <table class="auto-fit">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>IP Address</th>
+                        <th>Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {top_ips_table_rows}
+                </tbody>
+            </table>
         </div>
         <div>
             <h2>Events</h2>
@@ -136,8 +160,10 @@ def main():
         return
 
     df = pd.json_normalize(events)
+    top_src_ips = df['src_ip'].value_counts().head(10)
     fig = create_bar_chart(df)
-    report = create_html_report(fig, events)
+    
+    report = create_html_report(fig, events, top_src_ips)
     write_report_to_file(report, 'report.html')
     print("[+] Report generated successfully.")
 
