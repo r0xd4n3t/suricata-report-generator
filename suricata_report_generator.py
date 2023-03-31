@@ -14,7 +14,7 @@ excluded_messages = {
     "SURICATA HTTP unable to match response to request",
     "SURICATA IPv4 invalid checksum",
     "SURICATA IPv4 padding required",
-    "SURICATA IPv4 padding required",
+    "SURICATA IPv4 padding required ",
     "SURICATA SMTP data command rejected",
     "SURICATA SMTP invalid pipelined sequence",
     "SURICATA SMTP invalid reply",
@@ -70,7 +70,7 @@ def create_bar_chart(data_frame):
     )
     return fig
 
-def create_html_report(fig, events, top_src_ips, unique_ip_alerts):
+def create_html_report(fig, filtered_events, top_src_ips, unique_ip_alerts):
 
     table_rows = ''.join(
         f"<tr><td>{datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z').strftime('%Y-%m-%d')}</td>"
@@ -78,8 +78,8 @@ def create_html_report(fig, events, top_src_ips, unique_ip_alerts):
         f"<td>{e.get('src_ip', 'N/A')}</td>"
         f"<td>{e.get('dest_ip', 'N/A')}</td>"
         f"<td>{e['alert']['signature']}</td></tr>"
-        for e in tqdm(events, desc="[*] Generating report")
-        if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'] not in excluded_messages
+        for e in tqdm(filtered_events, desc="[*] Generating report")
+        if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'].strip() not in excluded_messages
     )
 
     # Generate top 10 IPs table rows
@@ -189,14 +189,22 @@ def main():
         return
 
     df = pd.json_normalize(events)
-    top_src_ips = df['src_ip'].value_counts().head(10)
-    fig = create_bar_chart(df)
+
+    # Filter out excluded messages
+    filtered_df = df[df.apply(lambda row: row['alert.signature'] not in excluded_messages, axis=1)]
+
+    # Get top_src_ips from filtered_df
+    top_src_ips = filtered_df['src_ip'].value_counts().head(10)
+    fig = create_bar_chart(filtered_df)
 
     # Group by alert message and aggregate unique IP addresses
-    unique_ip_alerts = df[df['alert.signature'].notnull()].groupby('alert.signature').agg({'src_ip': pd.Series.unique}).reset_index()
+    unique_ip_alerts = filtered_df[filtered_df['alert.signature'].notnull()].groupby('alert.signature').agg({'src_ip': pd.Series.unique}).reset_index()
     unique_ip_alerts = [(alert_msg, ips) for alert_msg, ips in unique_ip_alerts.values if alert_msg not in excluded_messages]
 
-    report = create_html_report(fig, events, top_src_ips, unique_ip_alerts)
+    # Filter events based on filtered_df
+    filtered_events = [e for e in events if e.get('alert', {}).get('signature') not in excluded_messages]
+
+    report = create_html_report(fig, filtered_events, top_src_ips, unique_ip_alerts)
     write_report_to_file(report, 'report.html')
     print("[+] Report generated successfully.")
 
