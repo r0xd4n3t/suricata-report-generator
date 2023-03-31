@@ -4,6 +4,8 @@ import plotly.express as px
 from tqdm import tqdm
 from datetime import datetime
 
+minified_css = "body{font-family:'Nunito',sans-serif;background-color:#f8f9fa}h1,h2{font-weight:600;margin-bottom:20px}.container{max-width:1200px;margin:0 auto;padding:20px}"
+
 excluded_messages = {
     "ET DNS Standard query response, Name Error",
     "ET SCAN Malformed Packet SYN RST",
@@ -97,78 +99,83 @@ def create_html_report(fig, filtered_events, top_src_ips, unique_ip_alerts):
     report = f'''
     <!DOCTYPE html>
     <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Suricata Report</title>
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css">
-        </head>
-        <body>
-            <div class="container">
-                <h1 class="mt-4">Suricata Report</h1>
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        {fig.to_html(include_plotlyjs='cdn', full_html=False)}
-                    </div>
+       <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Suricata Report</title>
+          <link rel="icon" href="favicon.ico">
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" crossorigin="anonymous">
+          <style>
+            {minified_css}
+          </style>
+       </head>
+       <body>
+          <div class="container">
+             <h1>Suricata Report</h1>
+             <div class="row">
+                <div class="col-md-12">
+                   {fig.to_html(include_plotlyjs='cdn', full_html=False)}
                 </div>
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <h2>Top 10 Source IPs</h2>
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Rank</th>
-                                    <th>IP Address</th>
-                                    <th>Count</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {top_ips_table_rows}
-                            </tbody>
-                        </table>
-                    </div>
+             </div>
+             <div class="row mt-4">
+                <div class="col-md-12">
+                   <h2>Top 10 Source IPs</h2>
+                   <table class="table table-striped">
+                      <thead>
+                         <tr>
+                            <th>Rank</th>
+                            <th>IP Address</th>
+                            <th>Count</th>
+                         </tr>
+                      </thead>
+                      <tbody>
+                         {top_ips_table_rows}
+                      </tbody>
+                   </table>
                 </div>
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <h2>Unique IPs per Alert Message</h2>
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Number</th>
-                                    <th>Alert Message</th>
-                                    <th>IP Addresses</th>
-                                    <th>IP Count</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {unique_ip_alerts_table_rows}
-                            </tbody>
-                        </table>
-                    </div>
+             </div>
+             <div class="row mt-4">
+                <div class="col-md-12">
+                   <h2>Unique IPs per Alert Message</h2>
+                   <table class="table table-striped">
+                      <thead>
+                         <tr>
+                            <th>Number</th>
+                            <th>Alert Message</th>
+                            <th>IP Addresses</th>
+                            <th>IP Count</th>
+                         </tr>
+                      </thead>
+                      <tbody>
+                         {unique_ip_alerts_table_rows}
+                      </tbody>
+                   </table>
                 </div>
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <h2>Events</h2>
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Source IP</th>
-                                    <th>Destination IP</th>
-                                    <th>Alert Message</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {table_rows}
-                            </tbody>
-                        </table>
-                    </div>
+             </div>
+             <div class="row mt-4">
+                <div class="col-md-12">
+                   <h2>Events</h2>
+                   <table class="table table-striped">
+                      <thead>
+                         <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Source IP</th>
+                            <th>Destination IP</th>
+                            <th>Alert Message</th>
+                         </tr>
+                      </thead>
+                      <tbody>
+                         {table_rows}
+                      </tbody>
+                   </table>
                 </div>
-            </div>
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.min.js"></script>
-        </body>
-    </html>    
+             </div>
+          </div>
+          <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+          <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.min.js" crossorigin="anonymous"></script>
+       </body>
+    </html>
     '''
 
     return report
