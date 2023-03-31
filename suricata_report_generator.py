@@ -93,84 +93,82 @@ def create_html_report(fig, filtered_events, top_src_ips, unique_ip_alerts):
         for index, (alert_msg, ips) in enumerate(unique_ip_alerts, start=1)
         if alert_msg not in excluded_messages
     )
-    
+
     report = f'''
-    <html>
-    <head>
-        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-        <style>
-            table {{
-                border-collapse: collapse;
-                width: 100%;
-            }}
-            th, td {{
-                border: 1px solid #dddddd;
-                padding: 8px;
-                text-align: left;
-            }}
-            th {{
-                background-color: #f2f2f2;
-            }}
-            .auto-fit {{
-                width: auto;
-            }}
-        </style>
-    </head>
-    <body>
-        <h1>Suricata Report</h1>
-        <div>
-            {fig.to_html(include_plotlyjs='cdn', full_html=False)}
-        </div>
-        <div>
-            <h2>Top 10 Source IPs</h2>
-            <table class="auto-fit">
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>IP Address</th>
-                        <th>Count</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {top_ips_table_rows}
-                </tbody>
-            </table>
-        </div>
-        <div>
-            <h2>Unique IPs per Alert Message</h2>
-            <table class="auto-fit">
-                <thead>
-                    <tr>
-                        <th>Number</th>
-                        <th>Alert Message</th>
-                        <th>IP Addresses</th>
-                        <th>IP Count</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {unique_ip_alerts_table_rows}
-                </tbody>
-            </table>
-        </div>
-        <div>
-            <h2>Events</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Source IP</th>
-                        <th>Destination IP</th>
-                        <th>Alert Message</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {table_rows}
-                </tbody>
-            </table>
-        </div>
-    </body>
-    </html>
+    <!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Suricata Report</title>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css">
+        </head>
+        <body>
+            <div class="container">
+                <h1 class="mt-4">Suricata Report</h1>
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        {fig.to_html(include_plotlyjs='cdn', full_html=False)}
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h2>Top 10 Source IPs</h2>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>IP Address</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {top_ips_table_rows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h2>Unique IPs per Alert Message</h2>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Number</th>
+                                    <th>Alert Message</th>
+                                    <th>IP Addresses</th>
+                                    <th>IP Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {unique_ip_alerts_table_rows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h2>Events</h2>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Source IP</th>
+                                    <th>Destination IP</th>
+                                    <th>Alert Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {table_rows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.min.js"></script>
+        </body>
+    </html>    
     '''
 
     return report
