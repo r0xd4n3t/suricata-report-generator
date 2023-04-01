@@ -19,10 +19,25 @@ Suricata Report Generator
 </p>
 
 # 📜 Introduction
-This script provides a powerful tool for analyzing and visualizing Suricata events, a widely-used open-source Network Intrusion Detection and Prevention System (NIDS/NIPS).
-The script reads event data from a JSON file, filters out specific unwanted messages, creates a bar chart of the top 10 source IP addresses, and generates an HTML report presenting the event data and the visualization.
+The script offers a robust solution for analyzing and visualizing events from Suricata, a widely-used open-source Network Intrusion Detection and Prevention System (NIDS/NIPS). 
+It is tailored for professional security consultants to evaluate and produce an all-inclusive report of security events recorded by the Suricata system.
 
-This report can be a valuable resource for security professionals looking to gain insights into network traffic patterns and identify potential security threats.
+The script processes event data from a JSON file, filters out specified excluded messages, and generates visual representations using bar and pie charts. 
+Additionally, it creates tables displaying the top 10 source IPs, top 10 alert messages, and unique IPs associated with each alert message.
+
+This information is then assembled into an HTML report, which is saved as a file.
+
+Key functionalities of the script encompass:
+
+-    Reading and sorting event data from a JSON file.
+-    Generating a bar chart for the top 10 source IPs.
+-    Producing a pie chart for the distribution of top 10 alert messages.
+-    Creating tables for the top 10 source IPs, top 10 alert messages, and unique IPs per alert message.
+-    Compiling the charts and tables into an HTML report.
+-    Saving the report to a file.
+
+The script employs various libraries, such as pandas, Plotly, and tqdm, to effectively process and visualize the data. 
+The resulting report equips security consultants with valuable insights, facilitating the identification of potential security threats and prioritization of further analysis.
 
 ## 🕹️ Usage
 To run the script, save it to a Python file (e.g., suricata_report_generator.py) and execute it in a terminal or command prompt with Python.
