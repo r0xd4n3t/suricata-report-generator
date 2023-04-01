@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 from tqdm import tqdm
 from datetime import datetime
+from collections import Counter
 
 minified_css = "body{font-family:'Nunito',sans-serif;background-color:#f8f9fa}h1,h2{font-weight:600;margin-bottom:20px}.container{max-width:1200px;margin:0 auto;padding:20px}"
 
@@ -72,7 +73,25 @@ def create_bar_chart(data_frame):
     )
     return fig
 
-def create_html_report(fig, filtered_events, top_src_ips, unique_ip_alerts):
+def create_pie_chart(data_frame):
+    # Filter out the excluded messages
+    filtered_df = data_frame[data_frame.apply(lambda row: row['alert.signature'] not in excluded_messages, axis=1)]
+
+    # Get the counts for each alert message and take only the top 10
+    top_10_alert_counts = filtered_df['alert.signature'].value_counts().head(10)
+
+    # Create the pie chart
+    fig = px.pie(
+        top_10_alert_counts,
+        values=top_10_alert_counts.values,
+        names=top_10_alert_counts.index,
+        title='Top 10 Alert Messages Distribution',
+        labels={'alert.signature': 'Alert Message'}
+    )
+
+    return fig
+
+def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ips, unique_ip_alerts):
 
     table_rows = ''.join(
         f"<tr><td>{datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z').strftime('%Y-%m-%d')}</td>"
@@ -89,6 +108,15 @@ def create_html_report(fig, filtered_events, top_src_ips, unique_ip_alerts):
         f"<tr><td>{index}</td><td>{ip}</td><td>{count}</td></tr>"
         for index, (ip, count) in enumerate(top_src_ips.items(), start=1)
     )
+
+    # Generate top 10 Alert Messages table rows
+    alert_signatures = [e['alert']['signature'] for e in filtered_events if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'] not in excluded_messages]
+    top_alert_counts = dict(Counter(alert_signatures).most_common(10))
+    top_alert_counts_table_rows = ''.join(
+    f"<tr><td>{index}</td><td>{alert_msg}</td><td>{count}</td></tr>"
+    for index, (alert_msg, count) in enumerate(top_alert_counts.items(), start=1)
+)
+
     # Generate unique IP per Alert Message table rows
     unique_ip_alerts_table_rows = ''.join(
         f"<tr><td>{index}</td><td>{alert_msg}</td><td>{', '.join(ips)}</td><td>{len(ips)}</td></tr>"
@@ -114,7 +142,8 @@ def create_html_report(fig, filtered_events, top_src_ips, unique_ip_alerts):
              <h1>Suricata Report</h1>
              <div class="row">
                 <div class="col-md-12">
-                   {fig.to_html(include_plotlyjs='cdn', full_html=False)}
+                   {bar_chart_fig.to_html(include_plotlyjs='cdn', full_html=False)}
+                   {pie_chart_fig.to_html(include_plotlyjs='cdn', full_html=False)}
                 </div>
              </div>
              <div class="row mt-4">
@@ -134,6 +163,23 @@ def create_html_report(fig, filtered_events, top_src_ips, unique_ip_alerts):
                    </table>
                 </div>
              </div>
+         <div class="row mt-4">
+            <div class="col-md-12">
+               <h2>Top 10 Alert Messages</h2>
+               <table class="table table-striped">
+                  <thead>
+                     <tr>
+                        <th>Rank</th>
+                        <th>Alert Message</th>
+                        <th>Count</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {top_alert_counts_table_rows}
+                  </tbody>
+               </table>
+            </div>
+         </div>
              <div class="row mt-4">
                 <div class="col-md-12">
                    <h2>Unique IPs per Alert Message</h2>
@@ -200,7 +246,8 @@ def main():
 
     # Get top_src_ips from filtered_df
     top_src_ips = filtered_df['src_ip'].value_counts().head(10)
-    fig = create_bar_chart(filtered_df)
+    bar_chart_fig = create_bar_chart(filtered_df)
+    pie_chart_fig = create_pie_chart(filtered_df)
 
     # Group by alert message and aggregate unique IP addresses
     unique_ip_alerts = filtered_df[filtered_df['alert.signature'].notnull()].groupby('alert.signature').agg({'src_ip': pd.Series.unique}).reset_index()
@@ -209,7 +256,7 @@ def main():
     # Filter events based on filtered_df
     filtered_events = [e for e in events if e.get('alert', {}).get('signature') not in excluded_messages]
 
-    report = create_html_report(fig, filtered_events, top_src_ips, unique_ip_alerts)
+    report = create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ips, unique_ip_alerts)
     write_report_to_file(report, 'report.html')
     print("[+] Report generated successfully.")
 
