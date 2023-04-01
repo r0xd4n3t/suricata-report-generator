@@ -115,13 +115,14 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
     top_alert_counts_table_rows = ''.join(
     f"<tr><td>{index}</td><td>{alert_msg}</td><td>{count}</td></tr>"
     for index, (alert_msg, count) in enumerate(top_alert_counts.items(), start=1)
-)
+    )
 
     # Generate unique IP per Alert Message table rows
+    unique_ip_alerts_sorted = sorted(unique_ip_alerts, key=lambda x: len(x[1]), reverse=True)
     unique_ip_alerts_table_rows = ''.join(
-        f"<tr><td>{index}</td><td>{alert_msg}</td><td>{', '.join(ips)}</td><td>{len(ips)}</td></tr>"
-        for index, (alert_msg, ips) in enumerate(unique_ip_alerts, start=1)
-        if alert_msg not in excluded_messages
+    f"<tr><td>{index}</td><td>{alert_msg}</td><td>{', '.join(ips)}</td><td>{len(ips)}</td></tr>"
+    for index, (alert_msg, ips) in enumerate(unique_ip_alerts_sorted, start=1)
+    if alert_msg not in excluded_messages
     )
 
     report = f'''
