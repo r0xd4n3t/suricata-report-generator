@@ -5,9 +5,8 @@ from tqdm import tqdm
 from datetime import datetime
 from collections import Counter
 
-minified_css = "body{font-family:'Nunito',sans-serif;background-color:#f8f9fa}h1,h2{font-weight:600;margin-bottom:20px}.container{max-width:1200px;margin:0 auto;padding:20px}"
-
-excluded_messages = {
+MINIFIED_CSS = "body{font-family:'Nunito',sans-serif;background-color:#f8f9fa}h1,h2{font-weight:600;margin-bottom:20px}.container{max-width:1200px;margin:0 auto;padding:20px}"
+EXCLUDED_MESSAGES = {
     "ET DNS Standard query response, Name Error",
     "ET SCAN Malformed Packet SYN RST",
     "GPL ICMP_INFO Echo Reply",
@@ -53,6 +52,7 @@ excluded_messages = {
     "SURICATA zero length padN option"
 }
 
+
 def read_events(file_path):
     try:
         with open(file_path) as f:
@@ -62,6 +62,7 @@ def read_events(file_path):
     except Exception as e:
         print(f"[!] Error reading events: {e}")
         return []
+
 
 def create_bar_chart(data_frame):
     top_src_ips = data_frame['src_ip'].value_counts().head(10)
@@ -73,14 +74,12 @@ def create_bar_chart(data_frame):
     )
     return fig
 
-def create_pie_chart(data_frame):
-    # Filter out the excluded messages
-    filtered_df = data_frame[data_frame.apply(lambda row: row['alert.signature'] not in excluded_messages, axis=1)]
 
-    # Get the counts for each alert message and take only the top 10
+def create_pie_chart(data_frame):
+    filtered_df = data_frame[data_frame['alert.signature'].apply(lambda msg: msg not in EXCLUDED_MESSAGES)]
+
     top_10_alert_counts = filtered_df['alert.signature'].value_counts().head(10)
 
-    # Create the pie chart
     fig = px.pie(
         top_10_alert_counts,
         values=top_10_alert_counts.values,
@@ -91,38 +90,41 @@ def create_pie_chart(data_frame):
 
     return fig
 
+
 def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ips, unique_ip_alerts):
+    def format_event_row(e):
+        timestamp = datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z')
+        return (
+            f"<tr><td>{timestamp.strftime('%Y-%m-%d')}</td>"
+            f"<td>{timestamp.strftime('%H:%M:%S')}</td>"
+            f"<td>{e.get('src_ip', 'N/A')}</td>"
+            f"<td>{e.get('dest_ip', 'N/A')}</td>"
+            f"<td>{e['alert']['signature']}</td></tr>"
+        )
 
     table_rows = ''.join(
-        f"<tr><td>{datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z').strftime('%Y-%m-%d')}</td>"
-        f"<td>{datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z').strftime('%H:%M:%S')}</td>"
-        f"<td>{e.get('src_ip', 'N/A')}</td>"
-        f"<td>{e.get('dest_ip', 'N/A')}</td>"
-        f"<td>{e['alert']['signature']}</td></tr>"
+        format_event_row(e)
         for e in tqdm(filtered_events, desc="[*] Generating report")
-        if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'].strip() not in excluded_messages
+        if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'].strip() not in EXCLUDED_MESSAGES
     )
 
-    # Generate top 10 IPs table rows
     top_ips_table_rows = ''.join(
         f"<tr><td>{index}</td><td>{ip}</td><td>{count}</td></tr>"
         for index, (ip, count) in enumerate(top_src_ips.items(), start=1)
     )
 
-    # Generate top 10 Alert Messages table rows
-    alert_signatures = [e['alert']['signature'] for e in filtered_events if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'] not in excluded_messages]
+    alert_signatures = [e['alert']['signature'] for e in filtered_events if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'] not in EXCLUDED_MESSAGES]
     top_alert_counts = dict(Counter(alert_signatures).most_common(10))
     top_alert_counts_table_rows = ''.join(
-    f"<tr><td>{index}</td><td>{alert_msg}</td><td>{count}</td></tr>"
-    for index, (alert_msg, count) in enumerate(top_alert_counts.items(), start=1)
+        f"<tr><td>{index}</td><td>{alert_msg}</td><td>{count}</td></tr>"
+        for index, (alert_msg, count) in enumerate(top_alert_counts.items(), start=1)
     )
 
-    # Generate unique IP per Alert Message table rows
     unique_ip_alerts_sorted = sorted(unique_ip_alerts, key=lambda x: len(x[1]), reverse=True)
     unique_ip_alerts_table_rows = ''.join(
-    f"<tr><td>{index}</td><td>{alert_msg}</td><td>{', '.join(ips)}</td><td>{len(ips)}</td></tr>"
-    for index, (alert_msg, ips) in enumerate(unique_ip_alerts_sorted, start=1)
-    if alert_msg not in excluded_messages
+        f"<tr><td>{index}</td><td>{alert_msg}</td><td>{', '.join(ips)}</td><td>{len(ips)}</td></tr>"
+        for index, (alert_msg, ips) in enumerate(unique_ip_alerts_sorted, start=1)
+        if alert_msg not in EXCLUDED_MESSAGES
     )
 
     report = f'''
@@ -135,7 +137,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
           <link rel="icon" href="favicon.ico">
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" crossorigin="anonymous">
           <style>
-            {minified_css}
+            {MINIFIED_CSS}
           </style>
        </head>
        <body>
@@ -164,23 +166,23 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
                    </table>
                 </div>
              </div>
-         <div class="row mt-4">
-            <div class="col-md-12">
-               <h2>Top 10 Alert Messages</h2>
-               <table class="table table-striped">
-                  <thead>
-                     <tr>
-                        <th>Rank</th>
-                        <th>Alert Message</th>
-                        <th>Count</th>
-                     </tr>
-                  </thead>
-                  <tbody>
-                     {top_alert_counts_table_rows}
-                  </tbody>
-               </table>
-            </div>
-         </div>
+             <div class="row mt-4">
+                <div class="col-md-12">
+                   <h2>Top 10 Alert Messages</h2>
+                   <table class="table table-striped">
+                      <thead>
+                         <tr>
+                            <th>Rank</th>
+                            <th>Alert Message</th>
+                            <th>Count</th>
+                         </tr>
+                      </thead>
+                      <tbody>
+                         {top_alert_counts_table_rows}
+                      </tbody>
+                   </table>
+                </div>
+             </div>
              <div class="row mt-4">
                 <div class="col-md-12">
                    <h2>Unique IPs per Alert Message</h2>
@@ -243,7 +245,7 @@ def main():
     df = pd.json_normalize(events)
 
     # Filter out excluded messages
-    filtered_df = df[df.apply(lambda row: row['alert.signature'] not in excluded_messages, axis=1)]
+    filtered_df = df[df.apply(lambda row: row['alert.signature'] not in EXCLUDED_MESSAGES, axis=1)]
 
     # Get top_src_ips from filtered_df
     top_src_ips = filtered_df['src_ip'].value_counts().head(10)
@@ -252,10 +254,10 @@ def main():
 
     # Group by alert message and aggregate unique IP addresses
     unique_ip_alerts = filtered_df[filtered_df['alert.signature'].notnull()].groupby('alert.signature').agg({'src_ip': pd.Series.unique}).reset_index()
-    unique_ip_alerts = [(alert_msg, ips) for alert_msg, ips in unique_ip_alerts.values if alert_msg not in excluded_messages]
+    unique_ip_alerts = [(alert_msg, ips) for alert_msg, ips in unique_ip_alerts.values if alert_msg not in EXCLUDED_MESSAGES]
 
     # Filter events based on filtered_df
-    filtered_events = [e for e in events if e.get('alert', {}).get('signature') not in excluded_messages]
+    filtered_events = [e for e in events if e.get('alert', {}).get('signature') not in EXCLUDED_MESSAGES]
 
     report = create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ips, unique_ip_alerts)
     write_report_to_file(report, 'report.html')
