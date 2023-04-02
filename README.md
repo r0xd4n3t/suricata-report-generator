@@ -36,6 +36,30 @@ Key functionalities of the script encompass:
 -    Compiling the charts and tables into an HTML report.
 -    Saving the report to a file.
 
+> bar chart for the top 10 source IPs
+
+![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/1.png)
+
+> pie chart for the distribution of top 10 alert messages
+
+![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/2.png)
+
+> Top 10 source IPs
+
+![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/3.png)
+
+> Top 10 alert messages
+
+![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/4.png)
+
+> Unique IPs per alert message.
+
+![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/5.png)
+
+> Events
+
+![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/6.png)
+
 The script employs various libraries, such as pandas, Plotly, and tqdm, to effectively process and visualize the data. 
 The resulting report equips security consultants with valuable insights, facilitating the identification of potential security threats and prioritization of further analysis.
 
