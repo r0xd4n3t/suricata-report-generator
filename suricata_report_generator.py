@@ -2,8 +2,10 @@ import json
 import pandas as pd
 import plotly.express as px
 from tqdm import tqdm
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from collections import Counter
+
+gmt_8 = timezone(timedelta(hours=8))
 
 MINIFIED_CSS = "body{font-family:'Nunito',sans-serif;background-color:#f8f9fa}h1,h2{font-weight:600;margin-bottom:20px}.container{max-width:1200px;margin:0 auto;padding:20px}"
 EXCLUDED_MESSAGES = {
@@ -79,14 +81,17 @@ def read_events(file_path):
 def calculate_summary(filtered_events):
     start_date = end_date = start_datetime = end_datetime = None
     total_alerts = 0
+    gmt_8 = timezone(timedelta(hours=8))
 
     for e in filtered_events:
         if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'].strip() not in EXCLUDED_MESSAGES:
             timestamp = datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z')
-            if not start_datetime or timestamp < start_datetime:
-                start_datetime = timestamp
-            if not end_datetime or timestamp > end_datetime:
-                end_datetime = timestamp
+            timestamp_gmt8 = timestamp.astimezone(gmt_8)  # Convert to GMT+8
+
+            if not start_datetime or timestamp_gmt8 < start_datetime:
+                start_datetime = timestamp_gmt8
+            if not end_datetime or timestamp_gmt8 > end_datetime:
+                end_datetime = timestamp_gmt8
 
             total_alerts += 1
 
@@ -131,9 +136,10 @@ def create_pie_chart(data_frame):
 def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ips, unique_ip_alerts):
     def format_event_row(e):
         timestamp = datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z')
+        timestamp_gmt8 = timestamp.astimezone(gmt_8)  # Convert to GMT+8
         return (
-            f"<tr><td>{timestamp.strftime('%Y-%m-%d')}</td>"
-            f"<td>{timestamp.strftime('%H:%M:%S')}</td>"
+            f"<tr><td>{timestamp_gmt8.strftime('%Y-%m-%d')}</td>"
+            f"<td>{timestamp_gmt8.strftime('%H:%M:%S')}</td>"
             f"<td>{e.get('src_ip', 'N/A')}</td>"
             f"<td>{e.get('dest_ip', 'N/A')}</td>"
             f"<td>{e['alert']['signature']}</td></tr>"
