@@ -8,15 +8,23 @@ from collections import Counter
 MINIFIED_CSS = "body{font-family:'Nunito',sans-serif;background-color:#f8f9fa}h1,h2{font-weight:600;margin-bottom:20px}.container{max-width:1200px;margin:0 auto;padding:20px}"
 EXCLUDED_MESSAGES = {
     "ET DNS Standard query response, Name Error",
+    "ET EXPLOIT Possible CVE-2020-11899 Multicast out-of-bound read",
+    "ET INFO TLS Handshake Failure",
     "ET SCAN Malformed Packet SYN RST",
+    "GPL DNS SPOOF query response with TTL of 1 min. and no authority",
+    "GPL ICMP_INFO Destination Unreachable Fragmentation Needed and DF bit was set",
+    "GPL ICMP_INFO Destination Unreachable Network Unreachable",
+    "GPL ICMP_INFO Destination Unreachable Port Unreachable",
     "GPL ICMP_INFO Echo Reply",
     "SURICATA Applayer Detect protocol only one direction",
     "SURICATA Applayer Mismatch protocol both directions",
     "SURICATA Applayer Wrong direction first Data",
+    "SURICATA FRAG IPv4 Fragmentation overlap",
+    "SURICATA GRE v0 flags",
     "SURICATA HTTP unable to match response to request",
     "SURICATA IPv4 invalid checksum",
-    "SURICATA IPv4 padding required",
     "SURICATA IPv4 padding required ",
+    "SURICATA IPv4 padding required",
     "SURICATA SMTP data command rejected",
     "SURICATA SMTP invalid pipelined sequence",
     "SURICATA SMTP invalid reply",
@@ -36,9 +44,11 @@ EXCLUDED_MESSAGES = {
     "SURICATA STREAM FIN invalid ack",
     "SURICATA STREAM FIN out of window",
     "SURICATA STREAM FIN recv but no session",
+    "SURICATA STREAM Last ACK with wrong seq",
     "SURICATA STREAM Packet with broken ack",
     "SURICATA STREAM Packet with invalid ack",
     "SURICATA STREAM Packet with invalid timestamp",
+    "SURICATA STREAM reassembly overlap with different data",
     "SURICATA STREAM reassembly sequence GAP -- missing packet(s)",
     "SURICATA STREAM RST recv but no session",
     "SURICATA STREAM SHUTDOWN RST invalid ack",
@@ -49,6 +59,8 @@ EXCLUDED_MESSAGES = {
     "SURICATA TLS invalid handshake message",
     "SURICATA TLS invalid record/traffic",
     "SURICATA TLS invalid record type",
+    "SURICATA UDPv4 invalid checksum",
+    "SURICATA UDPv6 invalid checksum",
     "SURICATA zero length padN option"
 }
 
@@ -63,6 +75,27 @@ def read_events(file_path):
         print(f"[!] Error reading events: {e}")
         return []
 
+def calculate_summary(filtered_events):
+    start_date = end_date = start_datetime = end_datetime = None
+    total_alerts = 0
+
+    for e in filtered_events:
+        if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'].strip() not in EXCLUDED_MESSAGES:
+            timestamp = datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z')
+            if not start_datetime or timestamp < start_datetime:
+                start_datetime = timestamp
+            if not end_datetime or timestamp > end_datetime:
+                end_datetime = timestamp
+
+            total_alerts += 1
+
+    start_date, end_date = start_datetime.date(), end_datetime.date()
+    start_time = start_datetime.strftime('%H:%M:%S')  # Format start time
+    end_time = end_datetime.strftime('%H:%M:%S')  # Format end time
+
+    return start_date, end_date, start_time, end_time, total_alerts
+
+    
 
 def create_bar_chart(data_frame):
     top_src_ips = data_frame['src_ip'].value_counts().head(10)
@@ -127,6 +160,32 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
         if alert_msg not in EXCLUDED_MESSAGES
     )
 
+    # Calculate the summary
+    start_date, end_date, start_time, end_time, total_alerts = calculate_summary(filtered_events)
+
+    summary_table = f'''
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Total Alert Messages</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{start_date}</td>
+                <td>{end_date}</td>
+                <td>{start_time}</td>
+                <td>{end_time}</td>
+                <td>{total_alerts}</td>
+            </tr>
+        </tbody>
+    </table>
+    '''
+
     report = f'''
     <!DOCTYPE html>
     <html lang="en">
@@ -145,6 +204,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
              <h1>Suricata Report</h1>
              <div class="row">
                 <div class="col-md-12">
+                   {summary_table}  <!-- Add the summary table here -->
                    {bar_chart_fig.to_html(include_plotlyjs='cdn', full_html=False)}
                    {pie_chart_fig.to_html(include_plotlyjs='cdn', full_html=False)}
                 </div>
