@@ -75,6 +75,7 @@ def read_events(file_path):
         print(f"[!] Error reading events: {e}")
         return []
 
+
 def calculate_summary(filtered_events):
     start_date = end_date = start_datetime = end_datetime = None
     total_alerts = 0
@@ -93,9 +94,12 @@ def calculate_summary(filtered_events):
     start_time = start_datetime.strftime('%H:%M:%S')  # Format start time
     end_time = end_datetime.strftime('%H:%M:%S')  # Format end time
 
-    return start_date, end_date, start_time, end_time, total_alerts
+    # Calculate total time
+    total_time = end_datetime - start_datetime
+    total_minutes, total_seconds = divmod(total_time.seconds, 60)
 
-    
+    return start_date, end_date, start_time, end_time, total_minutes, total_seconds, total_alerts
+
 
 def create_bar_chart(data_frame):
     top_src_ips = data_frame['src_ip'].value_counts().head(10)
@@ -161,7 +165,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
     )
 
     # Calculate the summary
-    start_date, end_date, start_time, end_time, total_alerts = calculate_summary(filtered_events)
+    start_date, end_date, start_time, end_time, total_minutes, total_seconds, total_alerts = calculate_summary(filtered_events)
 
     summary_table = f'''
     <table class="table table-striped">
@@ -171,6 +175,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
                 <th>End Date</th>
                 <th>Start Time</th>
                 <th>End Time</th>
+                <th>Total Time</th>
                 <th>Total Alert Messages</th>
             </tr>
         </thead>
@@ -180,6 +185,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
                 <td>{end_date}</td>
                 <td>{start_time}</td>
                 <td>{end_time}</td>
+                <td>{total_minutes} minutes, {total_seconds} seconds</td>
                 <td>{total_alerts}</td>
             </tr>
         </tbody>
