@@ -36,6 +36,10 @@ Key functionalities of the script encompass:
 -    Compiling the charts and tables into an HTML report.
 -    Saving the report to a file.
 
+> Summary
+
+![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/sum.png)
+
 > bar chart for the top 10 source IPs
 
 ![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/1.png)
