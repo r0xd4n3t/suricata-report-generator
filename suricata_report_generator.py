@@ -219,7 +219,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
                 background-color: #333;
                 color: #fff;
                 padding: 0%;
-				height: 7%; /* Adjust the height to control the thickness */
+                height: 7%; /* Adjust the height to control the thickness */
                 position: fixed;
                 bottom: 0;
                 width: 100%;
