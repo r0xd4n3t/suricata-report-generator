@@ -4,9 +4,11 @@ import plotly.express as px
 from tqdm import tqdm
 from datetime import datetime, timezone, timedelta
 from collections import Counter
+import logging
 
 gmt_8 = timezone(timedelta(hours=8))
 
+# Constants and Configuration
 MINIFIED_CSS = "body{font-family:'Nunito',sans-serif;background-color:#f8f9fa}h1,h2{font-weight:600;margin-bottom:20px}.container{max-width:1200px;margin:0 auto;padding:20px}"
 EXCLUDED_MESSAGES = {
     "ET DNS Standard query response, Name Error",
@@ -66,6 +68,8 @@ EXCLUDED_MESSAGES = {
     "SURICATA zero length padN option"
 }
 
+# Logging Configuration
+logging.basicConfig(filename='suricata_report.log', level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s', datefmt='%I:%M %p %d/%m/%Y')
 
 def read_events(file_path):
     try:
@@ -74,9 +78,8 @@ def read_events(file_path):
             events.sort(key=lambda e: e['timestamp'])
         return events
     except Exception as e:
-        print(f"[!] Error reading events: {e}")
+        logging.error(f"Error reading events: {e}")
         return []
-
 
 def calculate_summary(filtered_events):
     start_date = end_date = start_datetime = end_datetime = None
@@ -305,19 +308,23 @@ def write_report_to_file(report, file_path):
     try:
         with open(file_path, 'w') as f:
             f.write(report)
+        logging.info(f"Report written to {file_path}")
     except Exception as e:
-        print(f"[!] Error writing report to file: {e}")
+        logging.error(f"Error writing report to file: {e}")
 
 def main():
-    events = read_events('eve.json')
+    # Input file path
+    input_file_path = 'eve.json'
+
+    events = read_events(input_file_path)
     if not events:
-        print("[!] No events found. Exiting.")
+        logging.warning("No events found. Exiting.")
         return
 
     df = pd.json_normalize(events)
 
     # Filter out excluded messages
-    filtered_df = df[df.apply(lambda row: row['alert.signature'] not in EXCLUDED_MESSAGES, axis=1)]
+    filtered_df = df[df['alert.signature'].apply(lambda msg: msg not in EXCLUDED_MESSAGES)]
 
     # Get top_src_ips from filtered_df
     top_src_ips = filtered_df['src_ip'].value_counts().head(10)
@@ -325,16 +332,18 @@ def main():
     pie_chart_fig = create_pie_chart(filtered_df)
 
     # Group by alert message and aggregate unique IP addresses
-    unique_ip_alerts = filtered_df[filtered_df['alert.signature'].notnull()].groupby('alert.signature').agg({'src_ip': pd.Series.unique}).reset_index()
+    unique_ip_alerts = filtered_df[filtered_df['alert.signature'].notna()].groupby('alert.signature')['src_ip'].unique().reset_index()
     unique_ip_alerts = [(alert_msg, ips) for alert_msg, ips in unique_ip_alerts.values if alert_msg not in EXCLUDED_MESSAGES]
 
     # Filter events based on filtered_df
     filtered_events = [e for e in events if e.get('alert', {}).get('signature') not in EXCLUDED_MESSAGES]
 
     report = create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ips, unique_ip_alerts)
-    write_report_to_file(report, 'report.html')
-    print("[+] Report generated successfully.")
+    output_file_path = 'report.html'
+    write_report_to_file(report, output_file_path)
+    logging.info("Report generated successfully.")
 
 if __name__ == '__main__':
-    print("[*] Please wait...")
+    current_time = datetime.now().strftime('%I:%M %p %d/%m/%Y')
+    logging.info(f"Starting Suricata Report generation...")
     main()
