@@ -213,6 +213,25 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
           <style>
             {MINIFIED_CSS}
           </style>
+          <style>
+            .footer {{
+                text-align: center;
+                background-color: #333;
+                color: #fff;
+                padding: 0%;
+				height: 7%; /* Adjust the height to control the thickness */
+                position: fixed;
+                bottom: 0;
+                width: 100%;
+            }}
+          </style>
+          <script>
+            document.addEventListener("DOMContentLoaded", function() {{
+                var currentYear = new Date().getFullYear();
+                var footer = document.querySelector(".footer p");
+                footer.textContent = "Suricata Report Generator (c) by r0xd4n3t " + currentYear;
+            }});
+          </script>
        </head>
        <body>
           <div class="container">
@@ -296,6 +315,12 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
                 </div>
              </div>
           </div>
+          <!-- Add the customized footer here -->
+          <footer class="footer mt-4">
+             <div class="container">
+                <p>Suricata Report Generator (c) by r0xd4n3t</p>
+             </div>
+          </footer>
           <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
           <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.min.js" crossorigin="anonymous"></script>
        </body>
