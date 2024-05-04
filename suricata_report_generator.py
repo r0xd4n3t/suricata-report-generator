@@ -1,10 +1,11 @@
 import json
-import pandas as pd
-import plotly.express as px
-from tqdm import tqdm
 from datetime import datetime, timezone, timedelta
 from collections import Counter
+from tqdm import tqdm
 import logging
+
+import pandas as pd
+import plotly.express as px
 
 gmt_8 = timezone(timedelta(hours=8))
 
@@ -72,6 +73,7 @@ EXCLUDED_MESSAGES = {
 logging.basicConfig(filename='suricata_report.log', level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s', datefmt='%I:%M %p %d/%m/%Y')
 
 def read_events(file_path):
+    """Read events from JSON file."""
     try:
         with open(file_path) as f:
             events = [json.loads(line) for line in f]
@@ -82,6 +84,7 @@ def read_events(file_path):
         return []
 
 def calculate_summary(filtered_events):
+    """Calculate summary statistics."""
     start_date = end_date = start_datetime = end_datetime = None
     total_alerts = 0
     gmt_8 = timezone(timedelta(hours=8))
@@ -110,6 +113,7 @@ def calculate_summary(filtered_events):
 
 
 def create_bar_chart(data_frame):
+    """Create a bar chart."""
     top_src_ips = data_frame['src_ip'].value_counts().head(10)
     fig = px.bar(
         top_src_ips,
@@ -121,6 +125,7 @@ def create_bar_chart(data_frame):
 
 
 def create_pie_chart(data_frame):
+    """Create a pie chart."""
     filtered_df = data_frame[data_frame['alert.signature'].apply(lambda msg: msg not in EXCLUDED_MESSAGES)]
 
     top_10_alert_counts = filtered_df['alert.signature'].value_counts().head(10)
@@ -137,6 +142,7 @@ def create_pie_chart(data_frame):
 
 
 def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ips, unique_ip_alerts):
+    """Create HTML report."""
     def format_event_row(e):
         timestamp = datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z')
         timestamp_gmt8 = timestamp.astimezone(gmt_8)  # Convert to GMT+8
@@ -316,6 +322,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
              </div>
           </div>
           <!-- Add the customized footer here -->
+          <br>
           <footer class="footer mt-4">
              <div class="container">
                 <p>Suricata Report Generator (c) by r0xd4n3t</p>
@@ -330,6 +337,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
     return report
 
 def write_report_to_file(report, file_path):
+    """Write report to file."""
     try:
         with open(file_path, 'w') as f:
             f.write(report)
@@ -338,7 +346,7 @@ def write_report_to_file(report, file_path):
         logging.error(f"Error writing report to file: {e}")
 
 def main():
-    # Input file path
+    """Main function."""
     input_file_path = 'eve.json'
 
     events = read_events(input_file_path)
@@ -347,20 +355,12 @@ def main():
         return
 
     df = pd.json_normalize(events)
-
-    # Filter out excluded messages
     filtered_df = df[df['alert.signature'].apply(lambda msg: msg not in EXCLUDED_MESSAGES)]
-
-    # Get top_src_ips from filtered_df
     top_src_ips = filtered_df['src_ip'].value_counts().head(10)
     bar_chart_fig = create_bar_chart(filtered_df)
     pie_chart_fig = create_pie_chart(filtered_df)
-
-    # Group by alert message and aggregate unique IP addresses
     unique_ip_alerts = filtered_df[filtered_df['alert.signature'].notna()].groupby('alert.signature')['src_ip'].unique().reset_index()
     unique_ip_alerts = [(alert_msg, ips) for alert_msg, ips in unique_ip_alerts.values if alert_msg not in EXCLUDED_MESSAGES]
-
-    # Filter events based on filtered_df
     filtered_events = [e for e in events if e.get('alert', {}).get('signature') not in EXCLUDED_MESSAGES]
 
     report = create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ips, unique_ip_alerts)
