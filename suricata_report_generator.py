@@ -84,7 +84,6 @@ def read_events(file_path):
 def calculate_summary(filtered_events):
     start_date = end_date = start_datetime = end_datetime = None
     total_alerts = 0
-    gmt_8 = timezone(timedelta(hours=8))
 
     for e in filtered_events:
         if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'].strip() not in EXCLUDED_MESSAGES:
