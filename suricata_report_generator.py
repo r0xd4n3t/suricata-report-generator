@@ -72,6 +72,7 @@ EXCLUDED_MESSAGES = {
 # Logging Configuration
 logging.basicConfig(filename='suricata_report.log', level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s', datefmt='%I:%M %p %d/%m/%Y')
 
+
 def read_events(file_path):
     """Read events from JSON file."""
     try:
@@ -83,33 +84,54 @@ def read_events(file_path):
         logging.error(f"Error reading events: {e}")
         return []
 
+
+def filter_events(events):
+    """Filter events to exclude specific messages."""
+    return [
+        e for e in events
+        if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'].strip() not in EXCLUDED_MESSAGES
+    ]
+
+
 def calculate_summary(filtered_events):
     """Calculate summary statistics."""
-    start_date = end_date = start_datetime = end_datetime = None
+    start_datetime = end_datetime = None
     total_alerts = 0
-    gmt_8 = timezone(timedelta(hours=8))
 
     for e in filtered_events:
-        if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'].strip() not in EXCLUDED_MESSAGES:
-            timestamp = datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z')
-            timestamp_gmt8 = timestamp.astimezone(gmt_8)  # Convert to GMT+8
+        timestamp = datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z')
+        timestamp_gmt8 = timestamp.astimezone(gmt_8)
 
-            if not start_datetime or timestamp_gmt8 < start_datetime:
-                start_datetime = timestamp_gmt8
-            if not end_datetime or timestamp_gmt8 > end_datetime:
-                end_datetime = timestamp_gmt8
+        if not start_datetime or timestamp_gmt8 < start_datetime:
+            start_datetime = timestamp_gmt8
+        if not end_datetime or timestamp_gmt8 > end_datetime:
+            end_datetime = timestamp_gmt8
 
-            total_alerts += 1
+        total_alerts += 1
 
     start_date, end_date = start_datetime.date(), end_datetime.date()
-    start_time = start_datetime.strftime('%H:%M:%S')  # Format start time
-    end_time = end_datetime.strftime('%H:%M:%S')  # Format end time
+    start_time = start_datetime.strftime('%H:%M:%S')
+    end_time = end_datetime.strftime('%H:%M:%S')
 
-    # Calculate total time
     total_time = end_datetime - start_datetime
-    total_minutes, total_seconds = divmod(total_time.seconds, 60)
+    total_seconds = total_time.total_seconds()
+    
+    weeks = int(total_seconds // 604800)
+    days = int((total_seconds % 604800) // 86400)
+    hours = int((total_seconds % 86400) // 3600)
+    minutes = int((total_seconds % 3600) // 60)
+    seconds = int(total_seconds % 60)
+    
+    if weeks > 0:
+        total_time_str = f"{weeks} weeks, {days} days, {hours} hours, {minutes} minutes, {seconds} seconds"
+    elif days > 0:
+        total_time_str = f"{days} days, {hours} hours, {minutes} minutes, {seconds} seconds"
+    elif hours > 0:
+        total_time_str = f"{hours} hours, {minutes} minutes, {seconds} seconds"
+    else:
+        total_time_str = f"{minutes} minutes, {seconds} seconds"
 
-    return start_date, end_date, start_time, end_time, total_minutes, total_seconds, total_alerts
+    return start_date, end_date, start_time, end_time, total_time_str, total_alerts
 
 
 def create_bar_chart(data_frame):
@@ -127,9 +149,7 @@ def create_bar_chart(data_frame):
 def create_pie_chart(data_frame):
     """Create a pie chart."""
     filtered_df = data_frame[data_frame['alert.signature'].apply(lambda msg: msg not in EXCLUDED_MESSAGES)]
-
     top_10_alert_counts = filtered_df['alert.signature'].value_counts().head(10)
-
     fig = px.pie(
         top_10_alert_counts,
         values=top_10_alert_counts.values,
@@ -137,23 +157,23 @@ def create_pie_chart(data_frame):
         title='Top 10 Alert Messages Distribution',
         labels={'alert.signature': 'Alert Message'}
     )
-
     return fig
+
+
+def format_event_row(e):
+    timestamp = datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z')
+    timestamp_gmt8 = timestamp.astimezone(gmt_8)
+    return (
+        f"<tr><td>{timestamp_gmt8.strftime('%Y-%m-%d')}</td>"
+        f"<td>{timestamp_gmt8.strftime('%H:%M:%S')}</td>"
+        f"<td>{e.get('src_ip', 'N/A')}</td>"
+        f"<td>{e.get('dest_ip', 'N/A')}</td>"
+        f"<td>{e['alert']['signature']}</td></tr>"
+    )
 
 
 def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ips, unique_ip_alerts):
     """Create HTML report."""
-    def format_event_row(e):
-        timestamp = datetime.strptime(e['timestamp'], '%Y-%m-%dT%H:%M:%S.%f%z')
-        timestamp_gmt8 = timestamp.astimezone(gmt_8)  # Convert to GMT+8
-        return (
-            f"<tr><td>{timestamp_gmt8.strftime('%Y-%m-%d')}</td>"
-            f"<td>{timestamp_gmt8.strftime('%H:%M:%S')}</td>"
-            f"<td>{e.get('src_ip', 'N/A')}</td>"
-            f"<td>{e.get('dest_ip', 'N/A')}</td>"
-            f"<td>{e['alert']['signature']}</td></tr>"
-        )
-
     table_rows = ''.join(
         format_event_row(e)
         for e in tqdm(filtered_events, desc="[*] Generating report")
@@ -179,8 +199,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
         if alert_msg not in EXCLUDED_MESSAGES
     )
 
-    # Calculate the summary
-    start_date, end_date, start_time, end_time, total_minutes, total_seconds, total_alerts = calculate_summary(filtered_events)
+    start_date, end_date, start_time, end_time, total_time_str, total_alerts = calculate_summary(filtered_events)
 
     summary_table = f'''
     <table class="table table-striped">
@@ -200,7 +219,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
                 <td>{end_date}</td>
                 <td>{start_time}</td>
                 <td>{end_time}</td>
-                <td>{total_minutes} minutes, {total_seconds} seconds</td>
+                <td>{total_time_str}</td>
                 <td>{total_alerts}</td>
             </tr>
         </tbody>
@@ -225,7 +244,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
                 background-color: #333;
                 color: #fff;
                 padding: 0%;
-                height: 7%; /* Adjust the height to control the thickness */
+                height: 7%;
                 position: fixed;
                 bottom: 0;
                 width: 100%;
@@ -244,7 +263,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
              <h1>Suricata Report</h1>
              <div class="row">
                 <div class="col-md-12">
-                   {summary_table}  <!-- Add the summary table here -->
+                   {summary_table}
                    {bar_chart_fig.to_html(include_plotlyjs='cdn', full_html=False)}
                    {pie_chart_fig.to_html(include_plotlyjs='cdn', full_html=False)}
                 </div>
@@ -321,7 +340,6 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
                 </div>
              </div>
           </div>
-          <!-- Add the customized footer here -->
           <br>
           <footer class="footer mt-4">
              <div class="container">
@@ -336,6 +354,7 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
 
     return report
 
+
 def write_report_to_file(report, file_path):
     """Write report to file."""
     try:
@@ -344,6 +363,7 @@ def write_report_to_file(report, file_path):
         logging.info(f"Report written to {file_path}")
     except Exception as e:
         logging.error(f"Error writing report to file: {e}")
+
 
 def main():
     """Main function."""
@@ -355,20 +375,23 @@ def main():
         return
 
     df = pd.json_normalize(events)
+    filtered_events = filter_events(events)
     filtered_df = df[df['alert.signature'].apply(lambda msg: msg not in EXCLUDED_MESSAGES)]
+
     top_src_ips = filtered_df['src_ip'].value_counts().head(10)
     bar_chart_fig = create_bar_chart(filtered_df)
     pie_chart_fig = create_pie_chart(filtered_df)
+
     unique_ip_alerts = filtered_df[filtered_df['alert.signature'].notna()].groupby('alert.signature')['src_ip'].unique().reset_index()
     unique_ip_alerts = [(alert_msg, ips) for alert_msg, ips in unique_ip_alerts.values if alert_msg not in EXCLUDED_MESSAGES]
-    filtered_events = [e for e in events if e.get('alert', {}).get('signature') not in EXCLUDED_MESSAGES]
 
     report = create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ips, unique_ip_alerts)
     output_file_path = 'report.html'
     write_report_to_file(report, output_file_path)
     logging.info("Report generated successfully.")
 
+
 if __name__ == '__main__':
     current_time = datetime.now().strftime('%I:%M %p %d/%m/%Y')
-    logging.info(f"Starting Suricata Report generation...")
+    logging.info(f"Starting Suricata Report generation at {current_time}")
     main()
