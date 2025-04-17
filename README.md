@@ -79,7 +79,7 @@ python suricata_report_generator.py
 ```bash
 pip install pandas plotly tqdm
 ```
-* <b>Suricata JSON Logs:</b>b
+* <b>Suricata JSON Logs:</b>
 <p>Ensure your `eve.json` log file is available in the working directory.</p>
 
 ## 🔍 Summary
