@@ -173,7 +173,8 @@ def format_event_row(e):
 
 
 def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ips, unique_ip_alerts):
-    """Create HTML report."""
+    """Enhanced HTML report with a dark mode toggle button."""
+
     table_rows = ''.join(
         format_event_row(e)
         for e in tqdm(filtered_events, desc="[*] Generating report")
@@ -185,7 +186,10 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
         for index, (ip, count) in enumerate(top_src_ips.items(), start=1)
     )
 
-    alert_signatures = [e['alert']['signature'] for e in filtered_events if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'] not in EXCLUDED_MESSAGES]
+    alert_signatures = [
+        e['alert']['signature'] for e in filtered_events
+        if 'alert' in e and 'signature' in e['alert'] and e['alert']['signature'] not in EXCLUDED_MESSAGES
+    ]
     top_alert_counts = dict(Counter(alert_signatures).most_common(10))
     top_alert_counts_table_rows = ''.join(
         f"<tr><td>{index}</td><td>{alert_msg}</td><td>{count}</td></tr>"
@@ -202,15 +206,15 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
     start_date, end_date, start_time, end_time, total_time_str, total_alerts = calculate_summary(filtered_events)
 
     summary_table = f'''
-    <table class="table table-striped">
-        <thead>
+    <table class="table table-hover table-bordered text-center shadow-sm">
+        <thead class="table-primary">
             <tr>
                 <th>Start Date</th>
                 <th>End Date</th>
                 <th>Start Time</th>
                 <th>End Time</th>
-                <th>Total Time</th>
-                <th>Total Alert Messages</th>
+                <th>Total Duration</th>
+                <th>Total Alerts</th>
             </tr>
         </thead>
         <tbody>
@@ -226,134 +230,131 @@ def create_html_report(bar_chart_fig, pie_chart_fig, filtered_events, top_src_ip
     </table>
     '''
 
+    enhanced_css = '''
+    body.light-mode {
+        font-family: 'Nunito', sans-serif;
+        background: linear-gradient(135deg, #eceff1, #ffffff);
+        color: #333;
+    }
+    body.dark-mode {
+        font-family: 'Nunito', sans-serif;
+        background-color: #121212;
+        color: #ffffff;
+    }
+    h1, h2 {
+        font-weight: 700;
+        margin-bottom: 15px;
+        color: #0d6efd;
+        text-shadow: 1px 1px #ddd;
+    }
+    .card {
+        box-shadow: 0 6px 12px rgba(0,0,0,.1);
+        border-radius: 12px;
+        margin-bottom: 30px;
+    }
+    .footer {
+        text-align: center;
+        background-color: #0d6efd;
+        color: white;
+        padding: 15px;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        font-weight: 500;
+    }
+    '''
+
+    theme_toggle_script = '''
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            document.body.classList.toggle('light-mode');
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.classList.add('light-mode');
+        });
+    </script>
+    '''
+
     report = f'''
     <!DOCTYPE html>
     <html lang="en">
-       <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Suricata Report</title>
-          <link rel="icon" href="favicon.ico">
-          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" crossorigin="anonymous">
-          <style>
-            {MINIFIED_CSS}
-          </style>
-          <style>
-            .footer {{
-                text-align: center;
-                background-color: #333;
-                color: #fff;
-                padding: 0%;
-                height: 7%;
-                position: fixed;
-                bottom: 0;
-                width: 100%;
-            }}
-          </style>
-          <script>
-            document.addEventListener("DOMContentLoaded", function() {{
-                var currentYear = new Date().getFullYear();
-                var footer = document.querySelector(".footer p");
-                footer.textContent = "Suricata Report Generator (c) by r0xd4n3t " + currentYear;
-            }});
-          </script>
-       </head>
-       <body>
-          <div class="container">
-             <h1>Suricata Report</h1>
-             <div class="row">
-                <div class="col-md-12">
-                   {summary_table}
-                   {bar_chart_fig.to_html(include_plotlyjs='cdn', full_html=False)}
-                   {pie_chart_fig.to_html(include_plotlyjs='cdn', full_html=False)}
+    <head>
+        <meta charset="UTF-8">
+        <title>Suricata Security Alert Report</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>{enhanced_css}</style>
+    </head>
+    <body>
+        <div class="container py-4">
+            <button class="btn btn-secondary float-end" onclick="toggleTheme()">Toggle Dark Mode</button>
+            <h1 class="text-center mb-4">📊 Suricata Security Alert Report</h1>
+            <div class="card p-4">
+                {summary_table}
+                <div class="row mt-4">
+                    <div class="col-md-12 mb-4">
+                        {bar_chart_fig.to_html(include_plotlyjs='cdn', full_html=False)}
+                    </div>
+                    <div class="col-md-12">
+                        {pie_chart_fig.to_html(include_plotlyjs='cdn', full_html=False)}
+                    </div>
                 </div>
-             </div>
-             <div class="row mt-4">
-                <div class="col-md-12">
-                   <h2>Top 10 Source IPs</h2>
-                   <table class="table table-striped">
-                      <thead>
-                         <tr>
-                            <th>Rank</th>
-                            <th>IP Address</th>
-                            <th>Count</th>
-                         </tr>
-                      </thead>
-                      <tbody>
-                         {top_ips_table_rows}
-                      </tbody>
-                   </table>
-                </div>
-             </div>
-             <div class="row mt-4">
-                <div class="col-md-12">
-                   <h2>Top 10 Alert Messages</h2>
-                   <table class="table table-striped">
-                      <thead>
-                         <tr>
-                            <th>Rank</th>
-                            <th>Alert Message</th>
-                            <th>Count</th>
-                         </tr>
-                      </thead>
-                      <tbody>
-                         {top_alert_counts_table_rows}
-                      </tbody>
-                   </table>
-                </div>
-             </div>
-             <div class="row mt-4">
-                <div class="col-md-12">
-                   <h2>Unique IPs per Alert Message</h2>
-                   <table class="table table-striped">
-                      <thead>
-                         <tr>
-                            <th>Number</th>
-                            <th>Alert Message</th>
-                            <th>IP Addresses</th>
-                            <th>IP Count</th>
-                         </tr>
-                      </thead>
-                      <tbody>
-                         {unique_ip_alerts_table_rows}
-                      </tbody>
-                   </table>
-                </div>
-             </div>
-             <div class="row mt-4">
-                <div class="col-md-12">
-                   <h2>Events</h2>
-                   <table class="table table-striped">
-                      <thead>
-                         <tr>
-                            <th>Date</th>
-                            <th>Time</th>
-                            <th>Source IP</th>
-                            <th>Destination IP</th>
-                            <th>Alert Message</th>
-                         </tr>
-                      </thead>
-                      <tbody>
-                         {table_rows}
-                      </tbody>
-                   </table>
-                </div>
-             </div>
-          </div>
-          <br>
-          <footer class="footer mt-4">
-             <div class="container">
-                <p>Suricata Report Generator (c) by r0xd4n3t</p>
-             </div>
-          </footer>
-          <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
-          <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.min.js" crossorigin="anonymous"></script>
-       </body>
+            </div>
+
+            <div class="card p-4">
+                <h2>Top 10 Source IP Addresses</h2>
+                <table class="table table-bordered table-striped table-hover text-center">
+                    <thead class="table-secondary">
+                        <tr><th>#</th><th>IP Address</th><th>Count</th></tr>
+                    </thead>
+                    <tbody>{top_ips_table_rows}</tbody>
+                </table>
+            </div>
+
+            <div class="card p-4">
+                <h2>Top 10 Alert Messages</h2>
+                <table class="table table-bordered table-striped table-hover text-center">
+                    <thead class="table-secondary">
+                        <tr><th>#</th><th>Alert Message</th><th>Count</th></tr>
+                    </thead>
+                    <tbody>{top_alert_counts_table_rows}</tbody>
+                </table>
+            </div>
+
+            <div class="card p-4">
+                <h2>Unique IPs per Alert Message</h2>
+                <table class="table table-bordered table-striped table-hover">
+                    <thead class="table-secondary">
+                        <tr><th>#</th><th>Alert Message</th><th>IP Addresses</th><th>IP Count</th></tr>
+                    </thead>
+                    <tbody>{unique_ip_alerts_table_rows}</tbody>
+                </table>
+            </div>
+
+            <div class="card p-4">
+                <h2>Detailed Event Log</h2>
+                <table class="table table-bordered table-striped table-hover text-center">
+                    <thead class="table-secondary">
+                        <tr><th>Date</th><th>Time</th><th>Source IP</th><th>Destination IP</th><th>Alert Message</th></tr>
+                    </thead>
+                    <tbody>{table_rows}</tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="container">
+                Suricata Report Generator © r0xd4n3t <script>document.write(new Date().getFullYear())</script>
+            </div>
+        </footer>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        {theme_toggle_script}
+    </body>
     </html>
     '''
 
     return report
-
 
 def write_report_to_file(report, file_path):
     """Write report to file."""
