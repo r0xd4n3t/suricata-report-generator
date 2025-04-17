@@ -1,101 +1,89 @@
 <a id="top"></a>
 
-#
-
-<h1 align="center">
-Suricata Report Generator
-</h1>
+<h1 align="center">🛡️ Suricata Report Generator</h1>
 
 <p align="center"> 
   <kbd>
-<img src="https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/logo.png"></img>
+    <img src="https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/logo.png" alt="Logo" />
   </kbd>
 </p>
 
 <p align="center">
-<img src="https://img.shields.io/github/last-commit/r0xd4n3t/suricata-report-generator?style=flat">
-<img src="https://img.shields.io/github/stars/r0xd4n3t/suricata-report-generator?color=brightgreen">
-<img src="https://img.shields.io/github/forks/r0xd4n3t/suricata-report-generator?color=brightgreen">
+  <img src="https://img.shields.io/github/last-commit/r0xd4n3t/suricata-report-generator?style=flat" alt="Last Commit">
+  <img src="https://img.shields.io/github/stars/r0xd4n3t/suricata-report-generator?color=brightgreen" alt="Stars">
+  <img src="https://img.shields.io/github/forks/r0xd4n3t/suricata-report-generator?color=brightgreen" alt="Forks">
 </p>
 
-# 📜 Introduction
-The script offers a robust solution for analyzing and visualizing events from Suricata, a widely-used open-source Network Intrusion Detection and Prevention System (NIDS/NIPS). 
-It is tailored for professional security consultants to evaluate and produce an all-inclusive report of security events recorded by the Suricata system.
+---
 
-The script processes event data from a JSON file, filters out specified excluded messages, and generates visual representations using bar and pie charts. 
-Additionally, it creates tables displaying the top 10 source IPs, top 10 alert messages, and unique IPs associated with each alert message.
+## 📜 Introduction
 
-This information is then assembled into an HTML report, which is saved as a file.
+**Suricata Report Generator** provides a streamlined and professional approach to analyzing Suricata logs. Designed specifically for cybersecurity professionals and analysts, this script parses JSON logs from Suricata — a powerful open-source Network Intrusion Detection and Prevention System (NIDS/NIPS) — and generates a comprehensive, interactive HTML report.
 
-Key functionalities of the script encompass:
+Key features include:
 
--    Reading and sorting event data from a JSON file.
--    Generating a bar chart for the top 10 source IPs.
--    Producing a pie chart for the distribution of top 10 alert messages.
--    Creating tables for the top 10 source IPs, top 10 alert messages, and unique IPs per alert message.
--    Compiling the charts and tables into an HTML report.
--    Saving the report to a file.
+- 📥 Reading and parsing Suricata JSON logs
+- 📊 Visualizing data via bar and pie charts
+- 🧮 Tabulating Top 10 Source IPs and Alert Messages
+- 🧠 Mapping Unique IPs per Alert Message
+- 💾 Outputting a complete, formatted HTML report
 
-> Summary
+This tool empowers professionals to quickly assess network threats and identify critical indicators of compromise (IOCs).
 
-![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/sum.png)
+---
 
-> bar chart for the top 10 source IPs
+## 📈 Sample Output
 
-![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/1.png)
+> 📋 Summary  
+> ![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/sum.png)
 
-> pie chart for the distribution of top 10 alert messages
+> 📊 Top 10 Source IPs (Bar Chart)  
+> ![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/1.png)
 
-![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/2.png)
+> 🥧 Top 10 Alert Messages (Pie Chart)  
+> ![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/2.png)
 
-> Top 10 source IPs
+> 🧾 Top 10 Source IPs (Table)  
+> ![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/3.png)
 
-![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/3.png)
+> 🔔 Top 10 Alert Messages (Table)  
+> ![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/4.png)
 
-> Top 10 alert messages
+> 🔍 Unique IPs per Alert Message  
+> ![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/5.png)
 
-![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/4.png)
+> 📚 Events Table  
+> ![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/6.png)
 
-> Unique IPs per alert message.
-
-![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/5.png)
-
-> Events
-
-![](https://raw.githubusercontent.com/r0xd4n3t/suricata-report-generator/main/img/6.png)
-
-The script employs various libraries, such as pandas, Plotly, and tqdm, to effectively process and visualize the data. 
-The resulting report equips security consultants with valuable insights, facilitating the identification of potential security threats and prioritization of further analysis.
+---
 
 ## 🕹️ Usage
-To run the script, save it to a Python file (e.g., suricata_report_generator.py) and execute it in a terminal or command prompt with Python.
 
-The script will read event data from the 'eve.json' file, generate the report, and save it as 'report.html' in the same directory.
+To execute the script, save it as `suricata_report_generator.py`, ensure the required libraries are installed, and run the script from your terminal:
 
-```
+```bash
 python suricata_report_generator.py
 ```
 
+#### 📁 The script expects a file named `eve.json` (Suricata's JSON output) in the same directory.
+#### 📄 The output will be saved as `report.html`.
+
 ## 📝 Prerequisites
-Python 3.x: The script is written in Python 3 and requires a compatible interpreter to run.
-Download and install Python 3.x from https://www.python.org/downloads/.
 
-Required Libraries: The script uses the following external libraries, which must be installed:
+* <b>Python 3.x</b>
+<p>Download from python.org</p>
 
--   pandas
--   plotly
--   tqdm
+* <b>Required Python Libraries:</b>
+<p>Install using pip:</p>
 
-To install these libraries, run the following command:
-
+```bash
+pip install pandas plotly tqdm
 ```
- pip install pandas plotly tqdm
-```
+* <b>Suricata JSON Logs:</b>b
+<p>Ensure your `eve.json` log file is available in the working directory.</p>
 
-Suricata JSON Output: The script expects input in the form of Suricata's JSON output format.
-Ensure that the 'eve.json' file is available in the same directory as the script, or modify the script to read from a different file path.
+## 🔍 Summary
 
-After completing these prerequisites, the script is ready to be executed. 
-The generated HTML report provides an overview of Suricata events, enabling security professionals to analyze network traffic, detect anomalies, and respond to potential threats.
+<p>This script simplifies the complex task of interpreting Suricata alerts. With powerful visuals and structured tables, it gives security teams clear insights to support incident response and threat hunting efforts.</p>
 
-<p align="center"><a href=#top>Back to Top</a></p>
+<p align="center"><a href="#top">🔝 Back to Top</a></p>
